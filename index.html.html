@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OMSAR Digital Transformation Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --primary: #1f6fb2;
+  --primary-light: #2d85d4;
+  --primary-dark: #155a94;
+  --accent: #0ea5e9;
+  --bg: #f3f7fb;
+  --white: #ffffff;
+  --card-shadow: 0 2px 12px rgba(31,111,178,0.08), 0 1px 3px rgba(0,0,0,0.04);
+  --card-shadow-hover: 0 8px 32px rgba(31,111,178,0.15), 0 2px 8px rgba(0,0,0,0.07);
+  --border: #e2eaf4;
+  --text-primary: #0f2847;
+  --text-secondary: #4a6080;
+  --text-muted: #8ba4be;
+  --green: #16a34a; --green-bg: #dcfce7;
+  --amber: #d97706; --amber-bg: #fef3c7;
+  --red: #dc2626;   --red-bg: #fee2e2;
+  --gray: #6b7280;  --gray-bg: #f3f4f6;
+  --purple: #7c3aed;--purple-bg: #ede9fe;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --transition: 0.2s ease;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--text-primary);font-size:14px;line-height:1.6;min-height:100vh}
+
+/* ── HEADER ─────────────────────────────── */
+.header{background:linear-gradient(135deg,#0a1f3d 0%,#1f6fb2 55%,#2d85d4 100%);padding:26px 40px;color:#fff;position:relative;overflow:hidden}
+.header::before,.header::after{content:'';position:absolute;border-radius:50%;background:rgba(255,255,255,0.04)}
+.header::before{width:340px;height:340px;top:-120px;right:-60px}
+.header::after{width:200px;height:200px;bottom:-80px;left:35%}
+.header-inner{max-width:1440px;margin:0 auto;position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.header-left{display:flex;align-items:center;gap:16px}
+.header-icon{width:50px;height:50px;background:rgba(255,255,255,0.14);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;border:1px solid rgba(255,255,255,0.2);backdrop-filter:blur(10px)}
+.omsar-logo{display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative}
+.omsar-logo:hover::after{content:'Click to upload logo';position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.75);color:#fff;font-size:10px;padding:4px 8px;border-radius:4px;white-space:nowrap;pointer-events:none;z-index:10}
+.header h1{font-size:20px;font-weight:700;letter-spacing:-0.3px}
+.header p{font-size:12px;opacity:.72;margin-top:3px;font-weight:300}
+.header-badges{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.hbadge{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);border-radius:20px;padding:5px 14px;font-size:11px;font-weight:500;backdrop-filter:blur(10px)}
+.hbadge.live{background:rgba(22,163,74,0.25);border-color:rgba(22,163,74,0.4)}
+
+/* ── ENTITY BAR ──────────────────────────── */
+.entity-bar{background:#fff;border-bottom:1px solid var(--border);padding:0 40px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.04)}
+.entity-bar-inner{max-width:1440px;margin:0 auto;display:flex;align-items:stretch;gap:0;overflow-x:auto;scrollbar-width:none}
+.entity-bar-inner::-webkit-scrollbar{display:none}
+.entity-tab{display:flex;align-items:center;gap:8px;padding:13px 18px;border-bottom:2.5px solid transparent;font-size:12px;font-weight:500;color:var(--text-muted);cursor:pointer;white-space:nowrap;transition:all var(--transition);user-select:none;border-right:1px solid var(--border)}
+.entity-tab:first-child{border-left:1px solid var(--border)}
+.entity-tab:hover{color:var(--primary);background:#f8fafd}
+.entity-tab.active{color:var(--primary);border-bottom-color:var(--primary);background:#f0f7ff}
+.entity-tab .tab-dot{width:8px;height:8px;border-radius:50%;background:currentColor;opacity:.6}
+.entity-tab.all-tab .tab-dot{background:linear-gradient(135deg,var(--primary),var(--accent))}
+.entity-tab .tab-count{background:var(--bg);border-radius:10px;padding:1px 7px;font-size:10px;font-family:'IBM Plex Mono',monospace;font-weight:600}
+.tab-name{cursor:pointer}.tab-name:hover{text-decoration:underline dotted;text-underline-offset:2px}
+.entity-tab.active .tab-count{background:#dbeeff;color:var(--primary)}
+.upload-tab{display:flex;align-items:center;gap:7px;padding:10px 16px;margin:auto 0 auto auto;background:var(--primary);color:#fff;border-radius:var(--radius-sm);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all var(--transition);border:none;font-family:'IBM Plex Sans',sans-serif}
+.upload-tab:hover{background:var(--primary-dark);transform:translateY(-1px);box-shadow:0 4px 12px rgba(31,111,178,0.3)}
+.upload-tab svg{width:14px;height:14px;flex-shrink:0}
+
+/* ── UPLOAD ZONE ─────────────────────────── */
+.upload-overlay{display:none;position:fixed;inset:0;background:rgba(10,31,61,0.6);z-index:1000;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.upload-overlay.open{display:flex}
+.upload-modal{background:#fff;border-radius:20px;padding:36px;width:520px;max-width:95vw;box-shadow:0 24px 60px rgba(0,0,0,0.2)}
+.modal-title{font-size:16px;font-weight:700;color:var(--text-primary);margin-bottom:4px}
+.modal-sub{font-size:12px;color:var(--text-muted);margin-bottom:24px}
+.drop-zone{border:2px dashed var(--primary-light);border-radius:var(--radius);padding:40px 24px;text-align:center;cursor:pointer;transition:all var(--transition);background:#f8fbff}
+.drop-zone:hover,.drop-zone.drag-over{background:#e8f3ff;border-color:var(--primary);border-style:solid}
+.drop-icon{font-size:36px;margin-bottom:12px}
+.drop-label{font-size:14px;font-weight:600;color:var(--text-primary);margin-bottom:6px}
+.drop-sub{font-size:12px;color:var(--text-muted)}
+.drop-sub em{color:var(--primary);font-style:normal;font-weight:600}
+#file-input{display:none}
+.modal-loaded{margin-top:20px;display:flex;flex-direction:column;gap:8px;max-height:180px;overflow-y:auto}
+.loaded-item{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg);border-radius:var(--radius-sm);border:1px solid var(--border)}
+.loaded-icon{font-size:16px}
+.loaded-name{flex:1;font-size:12px;font-weight:500;color:var(--text-primary)}
+.loaded-count{font-size:11px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace}
+.loaded-remove{width:22px;height:22px;border-radius:50%;background:#fee2e2;color:#dc2626;border:none;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:all var(--transition)}
+.loaded-remove:hover{background:#dc2626;color:#fff}
+.modal-actions{display:flex;gap:10px;margin-top:20px}
+.btn-primary{flex:1;padding:11px;background:var(--primary);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;transition:all var(--transition)}
+.btn-primary:hover{background:var(--primary-dark)}
+.btn-secondary{padding:11px 20px;background:#f3f7fb;color:var(--text-secondary);border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:500;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;transition:all var(--transition)}
+.btn-secondary:hover{border-color:var(--primary);color:var(--primary)}
+.progress-wrap{margin-top:12px;display:none}
+.progress-bar-track{height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+.progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--primary),var(--accent));border-radius:2px;transition:width 0.3s ease;width:0%}
+.progress-label{font-size:11px;color:var(--text-muted);margin-top:6px;text-align:center}
+
+/* ── CONTAINER ───────────────────────────── */
+.container{max-width:1440px;margin:0 auto;padding:28px 40px}
+@media(max-width:768px){.container{padding:16px}.header{padding:18px 16px}.entity-bar{padding:0 12px}}
+
+.section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.8px;color:var(--text-muted);margin-bottom:14px;display:flex;align-items:center;gap:10px}
+.section-title::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* ── KPI CARDS ───────────────────────────── */
+.kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:28px}
+@media(max-width:1100px){.kpi-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:600px){.kpi-grid{grid-template-columns:repeat(2,1fr)}}
+
+.kpi-card{background:var(--white);border-radius:var(--radius);padding:20px 18px;box-shadow:var(--card-shadow);border:1px solid var(--border);position:relative;overflow:hidden;transition:transform var(--transition),box-shadow var(--transition);animation:fadeInUp 0.4s ease both}
+.kpi-card:hover{transform:translateY(-2px);box-shadow:var(--card-shadow-hover)}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--radius) var(--radius) 0 0}
+.kpi-card.c-total::before{background:linear-gradient(90deg,var(--primary),var(--primary-light))}
+.kpi-card.c-digital::before{background:linear-gradient(90deg,var(--green),#22c55e)}
+.kpi-card.c-partial::before{background:linear-gradient(90deg,var(--amber),#f59e0b)}
+.kpi-card.c-trad::before{background:linear-gradient(90deg,var(--red),#ef4444)}
+.kpi-card.c-missing::before{background:linear-gradient(90deg,var(--gray),#9ca3af)}
+.kpi-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.kpi-value{font-size:34px;font-weight:700;color:var(--text-primary);font-family:'IBM Plex Mono',monospace;letter-spacing:-1px;line-height:1;margin-bottom:5px;transition:all 0.3s ease}
+.kpi-sub{font-size:11px;color:var(--text-secondary)}
+.kpi-pct{font-size:12px;font-weight:600;margin-top:4px}
+.c-digital .kpi-pct{color:var(--green)}
+.c-partial .kpi-pct{color:var(--amber)}
+.c-trad .kpi-pct{color:var(--red)}
+.c-missing .kpi-pct{color:var(--gray)}
+
+/* ── ENTITY OVERVIEW PILLS ───────────────── */
+.entity-overview{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:28px}
+.entity-pill{display:flex;align-items:center;gap:8px;padding:8px 16px;background:var(--white);border:1px solid var(--border);border-radius:20px;font-size:12px;cursor:pointer;transition:all var(--transition);box-shadow:var(--card-shadow)}
+.entity-pill:hover{border-color:var(--primary);color:var(--primary)}
+.entity-pill.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.entity-pill .ep-name{font-weight:600}
+.entity-pill .ep-count{opacity:.75;font-family:'IBM Plex Mono',monospace;font-size:11px}
+.entity-pill .ep-color{width:8px;height:8px;border-radius:50%}
+
+/* ── CHARTS ──────────────────────────────── */
+.charts-grid{display:grid;grid-template-columns:1fr 1.6fr 1fr;gap:18px;margin-bottom:28px}
+@media(max-width:1100px){.charts-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:700px){.charts-grid{grid-template-columns:1fr}}
+
+.chart-card{background:var(--white);border-radius:var(--radius);padding:22px;box-shadow:var(--card-shadow);border:1px solid var(--border)}
+.chart-card-title{font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:2px}
+.chart-card-sub{font-size:11px;color:var(--text-muted);margin-bottom:18px}
+.doughnut-wrap{position:relative}
+.doughnut-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none}
+.doughnut-center .num{font-size:26px;font-weight:700;color:var(--text-primary);font-family:'IBM Plex Mono',monospace;line-height:1}
+.doughnut-center .lbl{font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.8px}
+
+/* ── MINI ENTITY CHART ───────────────────── */
+.entity-chart-card{grid-column:span 3}
+@media(max-width:1100px){.entity-chart-card{grid-column:span 2}}
+@media(max-width:700px){.entity-chart-card{grid-column:span 1}}
+
+/* ── TWO COL ─────────────────────────────── */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:28px}
+@media(max-width:900px){.two-col{grid-template-columns:1fr}}
+
+/* ── TABLE CARDS ─────────────────────────── */
+.table-card{background:var(--white);border-radius:var(--radius);box-shadow:var(--card-shadow);border:1px solid var(--border);overflow:hidden}
+.table-card-header{padding:16px 22px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.table-card-title{font-size:13px;font-weight:600;color:var(--text-primary)}
+.table-card-count{font-size:11px;color:var(--text-muted);background:var(--bg);padding:3px 10px;border-radius:10px;font-family:'IBM Plex Mono',monospace}
+.table-scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+th{padding:9px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);background:#f8fafd;border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:10px 14px;font-size:12px;color:var(--text-secondary);border-bottom:1px solid #f0f4f9;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#f8fafd}
+.td-rtl{direction:rtl;text-align:right}
+
+/* ── BADGES ──────────────────────────────── */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;white-space:nowrap;letter-spacing:.3px}
+.badge-dot{width:5px;height:5px;border-radius:50%;background:currentColor}
+.b-fully{background:var(--green-bg);color:var(--green)}
+.b-partial{background:var(--amber-bg);color:var(--amber)}
+.b-trad{background:var(--red-bg);color:var(--red)}
+.b-unspec{background:var(--gray-bg);color:var(--gray)}
+.b-cancel{background:var(--purple-bg);color:var(--purple)}
+
+/* ── ENTITY BADGE ────────────────────────── */
+.entity-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;white-space:nowrap}
+
+/* ── COMPLETENESS ────────────────────────── */
+.comp-bar-wrap{display:flex;align-items:center;gap:8px}
+.bar-track{flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden;min-width:60px}
+.bar-fill{height:100%;border-radius:3px}
+.bh{background:linear-gradient(90deg,var(--green),#22c55e)}
+.bm{background:linear-gradient(90deg,var(--amber),#f59e0b)}
+.bl{background:linear-gradient(90deg,var(--red),#ef4444)}
+.bar-pct{font-size:11px;font-weight:600;font-family:'IBM Plex Mono',monospace;min-width:38px;text-align:right}
+.ph{color:var(--green)}.pm{color:var(--amber)}.pl{color:var(--red)}
+
+/* ── EXPLORER ────────────────────────────── */
+.explorer-card{background:var(--white);border-radius:var(--radius);box-shadow:var(--card-shadow);border:1px solid var(--border);margin-bottom:28px;overflow:hidden}
+.explorer-header{padding:16px 22px;border-bottom:1px solid var(--border)}
+.explorer-title{font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:12px}
+.explorer-controls{display:flex;gap:10px;flex-wrap:wrap}
+.search-wrap{position:relative;flex:1;min-width:180px}
+.search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:13px;pointer-events:none}
+input[type=text],select{padding:9px 11px 9px 33px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:12px;font-family:'IBM Plex Sans',sans-serif;color:var(--text-primary);background:var(--bg);outline:none;transition:border-color var(--transition),box-shadow var(--transition);width:100%}
+select{padding-left:11px;cursor:pointer;min-width:140px}
+input[type=text]:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(31,111,178,0.1);background:#fff}
+.explorer-footer{padding:10px 22px;border-top:1px solid var(--border);font-size:11px;color:var(--text-muted);display:flex;align-items:center;justify-content:space-between;background:#f8fafd;flex-wrap:wrap;gap:8px}
+.exp-count{font-family:'IBM Plex Mono',monospace;font-weight:600;color:var(--text-primary)}
+
+/* ── PAGINATION ──────────────────────────── */
+.pagination{display:flex;gap:4px;align-items:center}
+.page-btn{width:27px;height:27px;border:1.5px solid var(--border);border-radius:6px;background:#fff;color:var(--text-secondary);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Sans',sans-serif;transition:all var(--transition)}
+.page-btn:hover{border-color:var(--primary);color:var(--primary)}
+.page-btn.active{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:700}
+.page-btn:disabled{opacity:.3;cursor:not-allowed}
+
+/* ── PRIORITY ────────────────────────────── */
+.pnum{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary-light));color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;flex-shrink:0}
+.pnum.top{background:linear-gradient(135deg,#d97706,#f59e0b)}
+
+/* ── EMPTY STATE ─────────────────────────── */
+.empty-state{padding:60px 20px;text-align:center;color:var(--text-muted)}
+.empty-icon{font-size:40px;margin-bottom:14px}
+.empty-title{font-size:14px;font-weight:600;color:var(--text-secondary);margin-bottom:6px}
+.empty-sub{font-size:12px}
+
+/* ── ANIMATIONS ──────────────────────────── */
+@keyframes fadeInUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.kpi-card:nth-child(1){animation-delay:.05s}
+.kpi-card:nth-child(2){animation-delay:.10s}
+.kpi-card:nth-child(3){animation-delay:.15s}
+.kpi-card:nth-child(4){animation-delay:.20s}
+.kpi-card:nth-child(5){animation-delay:.25s}
+
+/* ── SCROLLBAR ───────────────────────────── */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:#c5d4e8;border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--primary)}
+
+/* ── TOAST ───────────────────────────────── */
+.toast{position:fixed;bottom:24px;right:24px;padding:12px 20px;background:var(--text-primary);color:#fff;border-radius:var(--radius-sm);font-size:12px;font-weight:500;box-shadow:0 8px 24px rgba(0,0,0,0.2);z-index:9999;transform:translateY(100px);opacity:0;transition:all 0.3s ease;display:flex;align-items:center;gap:8px}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.success{background:#16a34a}
+.toast.error{background:#dc2626}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-inner">
+    <div class="header-left">
+      <div class="omsar-logo" title="Click to upload your own logo" onclick="document.getElementById('logo-upload').click()" style="cursor:pointer">
+        <div id="logo-display">
+          <img src="data:image/jpeg;base64,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" alt="OMSAR Logo" style="width:56px;height:56px;object-fit:contain;border-radius:10px;display:block;">
+        </div>
+        <input type="file" id="logo-upload" accept="image/*" style="display:none" onchange="handleLogoUpload(event)">
+      </div>
+      <div>
+        <h1>OMSAR Digital Transformation</h1>
+        <p>Ministries and SOEs Services Status</p>
+      </div>
+    </div>
+    <div class="header-badges">
+      <span class="hbadge">📊 Consolidated View</span>
+      <span class="hbadge live" id="hdr-entity-count">1 Ministry Loaded</span>
+      <span class="hbadge" id="hdr-date"></span>
+    </div>
+  </div>
+</header>
+
+<!-- ENTITY TAB BAR -->
+<nav class="entity-bar">
+  <div class="entity-bar-inner" id="entity-tabs">
+    <!-- tabs rendered by JS -->
+    <button class="upload-tab" onclick="openUploadModal()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      Add Ministry Excel
+    </button>
+  </div>
+</nav>
+
+<!-- UPLOAD MODAL -->
+<div class="upload-overlay" id="upload-overlay" onclick="handleOverlayClick(event)">
+  <div class="upload-modal">
+    <div class="modal-title">📂 Upload Ministry Excel File</div>
+    <div class="modal-sub">Supported format: .xlsx — The file will be parsed in your browser and added to the dashboard</div>
+
+    <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+      <div class="drop-icon">📊</div>
+      <div class="drop-label">Drop your Excel file here</div>
+      <div class="drop-sub">or <em>click to browse</em> &nbsp;·&nbsp; .xlsx files only</div>
+    </div>
+    <input type="file" id="file-input" accept=".xlsx,.xls" multiple>
+
+    <div class="progress-wrap" id="progress-wrap">
+      <div class="progress-bar-track"><div class="progress-bar-fill" id="progress-fill"></div></div>
+      <div class="progress-label" id="progress-label">Parsing file...</div>
+    </div>
+
+    <div class="modal-loaded" id="modal-loaded"></div>
+
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeUploadModal()">Close</button>
+      <button class="btn-primary" onclick="closeUploadModal()">✅ Apply &amp; View Dashboard</button>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="container" id="main-container">
+
+  <!-- KPI CARDS -->
+  <div class="section-title">Executive Summary</div>
+  <div class="kpi-grid" id="kpi-grid"></div>
+
+  <!-- ENTITY OVERVIEW (only in consolidated view) -->
+  <div id="entity-overview-section" style="margin-bottom:28px;display:none">
+    <div class="section-title">Ministries Overview</div>
+    <div id="entity-overview-grid"></div>
+  </div>
+
+  <!-- CHARTS -->
+  <div class="section-title">Digitalization Overview</div>
+  <div class="charts-grid">
+    <div class="chart-card">
+      <div class="chart-card-title">Status Distribution</div>
+      <div class="chart-card-sub">Services by digitalization level</div>
+      <div class="doughnut-wrap" style="height:210px;position:relative;display:flex;align-items:center;justify-content:center;">
+        <canvas id="doughnutChart" style="position:absolute;top:0;left:0;width:100%;height:100%"></canvas>
+        <div class="doughnut-center" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-60%);text-align:center;z-index:2;pointer-events:none">
+          <div class="num" id="doughnut-total">0</div>
+          <div class="lbl">Services</div>
+        </div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-title">Services by Directorate</div>
+      <div class="chart-card-sub">Breakdown by organizational unit</div>
+      <div style="height:210px;position:relative"><canvas id="dirChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-title">Records per Sheet</div>
+      <div class="chart-card-sub">Excel source distribution</div>
+      <div style="height:130px;position:relative"><canvas id="sheetChart"></canvas></div>
+      <div id="sheet-legend" style="margin-top:12px;display:flex;flex-direction:column;gap:8px"></div>
+    </div>
+    <!-- entity comparison chart (only multi-ministry) -->
+    <div class="chart-card entity-chart-card" id="entity-chart-card" style="display:none">
+      <div class="chart-card-title">Ministry Comparison</div>
+      <div class="chart-card-sub">Digitalization progress across all loaded ministries</div>
+      <div style="height:200px;position:relative"><canvas id="entityChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- COMPLETENESS + PRIORITY -->
+  <div class="section-title">Data Quality &amp; Priority Services</div>
+  <div class="two-col">
+    <div class="table-card">
+      <div class="table-card-header">
+        <div class="table-card-title">📋 Data Completeness</div>
+        <span class="table-card-count" id="comp-count">— fields</span>
+      </div>
+      <div class="table-scroll">
+        <table><thead><tr><th>Field</th><th>Missing</th><th>Completeness</th></tr></thead>
+        <tbody id="comp-tbody"></tbody></table>
+      </div>
+    </div>
+    <div class="table-card">
+      <div class="table-card-header">
+        <div class="table-card-title">⭐ Priority Services for Digitalization</div>
+        <span class="table-card-count" id="prio-count">— services</span>
+      </div>
+      <div class="table-scroll">
+        <table><thead><tr><th>#</th><th>Service</th><th>Reason</th><th id="prio-entity-th" style="display:none">Ministry</th></tr></thead>
+        <tbody id="prio-tbody"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- EXPLORER -->
+  <div class="section-title">Service Explorer</div>
+  <div class="explorer-card">
+    <div class="explorer-header">
+      <div class="explorer-title">🔍 Search &amp; Filter All Services</div>
+      <div class="explorer-controls">
+        <div class="search-wrap">
+          <span class="search-icon">🔎</span>
+          <input type="text" id="search-input" placeholder="Search service, department, division...">
+        </div>
+        <select id="status-filter">
+          <option value="">All Statuses</option>
+          <option value="Fully Digital">✅ Fully Digital</option>
+          <option value="Partially Digital">⚡ Partially Digital</option>
+          <option value="Traditional">📄 Traditional</option>
+          <option value="Unspecified">❓ Unspecified</option>
+          <option value="Cancelled">🚫 Cancelled</option>
+        </select>
+        <select id="entity-filter" style="display:none"><option value="">All Ministries</option></select>
+      </div>
+    </div>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th id="th-entity" style="display:none">Ministry</th>
+            <th>Service Name</th>
+            <th>Directorate</th>
+            <th>Department</th>
+            <th>Division</th>
+            <th>Status</th>
+            <th>Source</th>
+          </tr>
+        </thead>
+        <tbody id="explorer-tbody"></tbody>
+      </table>
+    </div>
+    <div class="explorer-footer">
+      <span>Showing <span class="exp-count" id="exp-showing">0</span> of <span class="exp-count" id="exp-total">0</span> services</span>
+      <div class="pagination" id="pagination"></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  DATA STORE
+// ═══════════════════════════════════════════════════════════
+const ENTITY_COLORS = [
+  '#1f6fb2','#16a34a','#d97706','#7c3aed','#dc2626',
+  '#0891b2','#be185d','#065f46','#92400e','#1e3a5f'
+];
+
+// Pre-loaded Health Ministry data
+const HEALTH_SEED = {"entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة", "filename": "Health.xlsx", "services": [{"ministry": "وزارة الصحـــة", "directorate": "", "directorate_en": "Unassigned", "department": "مصلحة الديوان:", "division": "1.1 دائرة التجهيز والتموين", "service": "1.1.1     الاستفادة من ادوية وزارة الصحة.", "status": "خدمة مرقمنة", "status_en": "Fully Digital", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "", "directorate_en": "Unassigned", "department": "مصلحة الديوان:", "division": "2.1\tدائرة المحاسبة", "service": "استلام حوالة الدفع", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "", "directorate_en": "Unassigned", "department": "مصلحة الديوان:", "division": "مستودع الادوية", "service": "الحصول على مساعدة ادوية السرطان وادوية الامراض المستعصية.", "status": "خدمة مرقمنة", "status_en": "Fully Digital", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة المستشفيات والمستوصفات والعناية الطبية", "division": "قسم الإداري للمستشفيات والمستوصفات.", "service": "عقود مع اطباء لغسل الكلي.", "status": "خدمة مرقمنة جزئياً", "status_en": "Partially Digital", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة المستشفيات والمستوصفات والعناية الطبية", "division": "قسم الإداري للمستشفيات والمستوصفات.", "service": "عقد مستشفى او مؤسسة فئة ثانية مع الوزارة.", "status": "خدمة مرقمنة جزئياً", "status_en": "Partially Digital", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة المستشفيات والمستوصفات والعناية الطبية", "division": "قسم الإداري للمستشفيات والمستوصفات.", "service": "الحصول على موافقة لاجراء عملية القلب المفتوح.", "status": "خدمة مرقمنة", "status_en": "Fully Digital", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة المستشفيات والمستوصفات والعناية الطبية", "division": "قسم الإداري للمستشفيات والمستوصفات.", "service": "الحصول على موافقة لتركيب طرف اصطناعي.", "status": "خدمة مرقمنة", "status_en": "Fully Digital", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة المستشفيات والمستوصفات والعناية الطبية", "division": "قسم الإداري للمستشفيات والمستوصفات.", "service": "طلب الانتساب إلى سجل المرضى المصابين بالقصور الكلوي المزمن. Interactive", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة المستشفيات والمستوصفات والعناية الطبية", "division": "قسم الإداري للمستشفيات والمستوصفات.", "service": "الاستفادة من التغطية الصحية في وزارة الصحة.", "status": "خدمة مرقمنة", "status_en": "Fully Digital", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة المستشفيات والمستوصفات والعناية الطبية", "division": "قسم الإداري للمستشفيات والمستوصفات.", "service": "اعتماد وتقييم وتصنيف المستشفيات", "status": "خدمة مرقمنة جزئياً", "status_en": "Partially Digital", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة المستشفيات والمستوصفات والعناية الطبية", "division": "قسم المهن الطبية.", "service": "إجازة فتح مختبر طبي عام في مستشفى Interactive", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة المستشفيات والمستوصفات والعناية الطبية", "division": "قسم المهن الطبية.", "service": "إجازة فتح مصرف دم في مستشفى.", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة المستشفيات والمستوصفات والعناية الطبية", "division": "قسم المهن الطبية.", "service": "إجازة فتح واستثمار مركز للعلاج الفيزيائي Interactive", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة المستشفيات والمستوصفات والعناية الطبية", "division": "قسم المهن الطبية.", "service": "الحصول على ترخيص بإدارة مصرف دم.", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة المستشفيات والمستوصفات والعناية الطبية", "division": "قسم المهن الطبية.", "service": "إجازة فتح مركز لجمع العينات تابع لمختبر طبي مرخص. Interactive", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة المستشفيات والمستوصفات والعناية الطبية", "division": "قسم المهن الطبية.", "service": "الترخيص بإنشاء مركز لغسل الكلى.", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة المستشفيات والمستوصفات والعناية الطبية", "division": "قسم المهن الطبية.", "service": "الترخيص باستثمار مركز لغسل الكلى.", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة المستشفيات والمستوصفات والعناية الطبية", "division": "قسم المهن الطبية.", "service": "إجازة فتح مختبر طبي.", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة المستشفيات والمستوصفات والعناية الطبية", "division": "قسم المهن الطبية.", "service": "فتح مختبر طبي متخصص بالتحاليل بالنظائر المشعة. Interactive", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة المستشفيات والمستوصفات والعناية الطبية", "division": "قسم المهن الطبية.", "service": "فتح مختبر طبي متخصص بالتحاليل بالنظائر المشعة في مستشفى.", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة المستشفيات والمستوصفات والعناية الطبية", "division": "قسم المهن الطبية.", "service": "إجازة فتح واستثمار مستودع لبيع مواد طب الأسنان.", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة المستشفيات والمستوصفات والعناية الطبية", "division": "قسم المهن الطبية.", "service": "الحصول على إجازة حمل لقب اختصاص طبي. Interactive", "status": "خدمة مرقمنة", "status_en": "Fully Digital", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة المستشفيات والمستوصفات والعناية الطبية", "division": "قسم المهن الطبية.", "service": "فتح وإستثمار مركز تجميل. Interactive", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة المستشفيات والمستوصفات والعناية الطبية", "division": "قسم المهن الطبية.", "service": "فتح مختبر طبي متخصص بالأنسجة والخلايا المريضة (الباتولوجيا).", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة المستشفيات والمستوصفات والعناية الطبية", "division": "قسم المهن الطبية.", "service": "ترخيص بفتح مستوصف خيري مجاني . Interactive", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة المستشفيات والمستوصفات والعناية الطبية", "division": "قسم المهن الطبية.", "service": "الحصول على ترخيص بإدارة مختبر طبي عام أو مختبر طبي متخصص بالأنسجة", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة المستشفيات والمستوصفات والعناية الطبية", "division": "قسم المهن الطبية.", "service": "والخلايا المريضة (الباتولوجيا) أو مختبر طبي متخصص بالتحاليل بالنظائر المشعة. Interactive", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة المستشفيات والمستوصفات والعناية الطبية", "division": "قسم المهن الطبية.", "service": "فتح وإدارة مؤسسة أشعة Interactive", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة المستشفيات والمستوصفات والعناية الطبية", "division": "قسم المهن الطبية.", "service": "ترخيص بإنشاء مستشفى Interactive", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة المستشفيات والمستوصفات والعناية الطبية", "division": "قسم المهن الطبية.", "service": "ترخيص باستثمار مستشفى Interactive", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة المستشفيات والمستوصفات والعناية الطبية", "division": "قسم المهن الطبية.", "service": "فتح مؤسسة أشعة في مستشفى Interactive", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة المستشفيات والمستوصفات والعناية الطبية", "division": "قسم المهن الطبية.", "service": "فتح واستثمار مركز علاج فيزيائي داخل مستشفى Interactive", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة المستشفيات والمستوصفات والعناية الطبية", "division": "قسم المهن الطبية.", "service": "فتح واستثمار مختبر أسنان Interactive", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة المستشفيات والمستوصفات والعناية الطبية", "division": "قسم المهن الطبية.", "service": "الحصول على إجازة معاطاة مهنة طبية.(المهنة طب عام) Interactive", "status": "خدمة مرقمنة جزئياً", "status_en": "Partially Digital", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة المستشفيات والمستوصفات والعناية الطبية", "division": "قسم المهن الطبية.", "service": "الحصول على إجازة معاطاة مهنة طبية.(المهنة طب اسنان ) Interactive", "status": "خدمة مرقمنة جزئياً", "status_en": "Partially Digital", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة المستشفيات والمستوصفات والعناية الطبية", "division": "قسم المهن الطبية.", "service": "الحصول على إجازة معاطاة مهنة طبية.(المهنة صيدلة) Interactive", "status": "خدمة مرقمنة جزئياً", "status_en": "Partially Digital", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة المستشفيات والمستوصفات والعناية الطبية", "division": "قسم المهن الطبية.", "service": "الحصول على إجازة معاطاة مهنة طبية.(المهنة قبالة) Interactive", "status": "خدمة مرقمنة جزئياً", "status_en": "Partially Digital", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة المستشفيات والمستوصفات والعناية الطبية", "division": "قسم المهن الطبية.", "service": "الحصول على إجازة معاطاة مهنة طبية.(المهنة العلاج الفيزيائي) Interactive", "status": "خدمة مرقمنة جزئياً", "status_en": "Partially Digital", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة المستشفيات والمستوصفات والعناية الطبية", "division": "قسم المهن الطبية.", "service": "الحصول على إجازة معاطاة مهنة طبية.(المهنة علوم مختبرات اسنان) Interactive", "status": "خدمة مرقمنة جزئياً", "status_en": "Partially Digital", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة المستشفيات والمستوصفات والعناية الطبية", "division": "قسم المهن الطبية.", "service": "الحصول على إجازة معاطاة مهنة طبية.(المهنة ممرض مجاز) Interactive", "status": "خدمة مرقمنة جزئياً", "status_en": "Partially Digital", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة المستشفيات والمستوصفات والعناية الطبية", "division": "قسم المهن الطبية.", "service": "الحصول على إجازة معاطاة مهنة طبية.(المهنة ممرض) Interactive", "status": "خدمة مرقمنة جزئياً", "status_en": "Partially Digital", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة المستشفيات والمستوصفات والعناية الطبية", "division": "قسم المهن الطبية.", "service": "الحصول على إجازة معاطاة مهنة طبية.(المهنة ممرض مساعد) Interactive", "status": "خدمة مرقمنة جزئياً", "status_en": "Partially Digital", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة المستشفيات والمستوصفات والعناية الطبية", "division": "قسم المهن الطبية.", "service": "الحصول على إجازة معاطاة مهنة طبية.(صنع وبيع نظارات) Interactive", "status": "خدمة مرقمنة جزئياً", "status_en": "Partially Digital", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة المستشفيات والمستوصفات والعناية الطبية", "division": "قسم المهن الطبية.", "service": "الحصول على إجازة معاطاة مهنة طبية.(طب الارياف) Interactive", "status": "خدمة مرقمنة جزئياً", "status_en": "Partially Digital", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة المستشفيات والمستوصفات والعناية الطبية", "division": "قسم المهن الطبية.", "service": "الحصول على إجازة معاطاة مهنة طبية. (فني مخبري مجاز) Interactive", "status": "خدمة مرقمنة جزئياً", "status_en": "Partially Digital", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة المستشفيات والمستوصفات والعناية الطبية", "division": "قسم المهن الطبية.", "service": "طلب الغاء ترخيص منشأة صحية. Interactive", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة المستشفيات والمستوصفات والعناية الطبية", "division": "قسم المهن الطبية.", "service": "طلب ترخيص بادارة مختبر طبي او مركز نقل دم.", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "", "service": "طلب شراء مستودع ادوية.", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "", "service": "طلب بيع و شراء صيدلية مرخصة.", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "", "service": "طلب الغاء ترخيص مستودع ادوية او صيدلية.", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "", "service": "طلب اجازة فتح واستثمار مستودع أدوية. Interactive", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "", "service": "طلب فتح خزانة أدوية.", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "", "service": "فتح صيدلية داخل مستشفى. Interactive", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "", "service": "طلب اجازة فتح و استثمار صيدلية لشركة صيادلة.", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "", "service": "طلب اجازة استثمار صيدلية لشركة صيادلة في حال الصيدلية مرخصة.", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "", "service": "إدارة صيدلية ليلاً", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "", "service": "طلب لإنابة صيدلي في ادارة صيدلية مستشفى.", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "", "service": "مزاولة مهنة الصيدلة. (مكرر)", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "", "service": "مباشرة العمل في الصيدلية.", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "", "service": "طلب مباشرة العمل في مستودع أدوية.", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "", "service": "طلب نقل موقع مستودع أدوية.", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "", "service": "طلب نقل موقع صيدلية. Interactive", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "", "service": "طلب تفرغ صيدلي مدير فني في شركة مستودع أدوية مرخص لصيدلي آخر.", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "", "service": "طلب تختيم سجل وصفات طبية.", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "", "service": "طلب تكليف صيدلي مدير فني في مستودع ادوية مرخص لصيدلي اخر.", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "", "service": "تكليف صيدلي قانوني بالتواجد بالحرم الجمركي من قبل مستودع ادوية.", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "", "service": "تلف أدوية منتهية الفعلية.", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "", "service": "طلب تسجيل مستحضر صيدلاني مستورد. Interactive", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "", "service": "طلب تصنيع داخل صيدلية.", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "", "service": "طلب نقل رخصة الصيدلي المتوفى الى ابنته او ابنه الصيدلي.", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "", "service": "طلب اجازة تعديل الاسم التجاري لصيدلية مرخصة.", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "", "service": "طلب اجازة توسيع مساحة صيدلية.", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "", "service": "تكليف صيدلي لادارة قسم الانتاج او قسم التحاليل في مصنع ادوية او شركة المختبرات.", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "", "service": "طلب اتخاذ شركاء في مستودع ادوية في حال مستودع الادوية مرخص.", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "", "service": "طلب انابة صيدلي في ادارة مستودع ادوية لمدة سنة او اقل من سنة.", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "", "service": "طلب تعديل الاسم التجاري لمستودع ادوية من ش.م.م. الى ش.م.ل.", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "", "service": "طلب تغيير اسم مستودع فقط. عير موجود", "status": "خدمة ملغاة", "status_en": "Cancelled", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "", "service": "نقل موقع صيدلية او مستودع ادوية. مكرر", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "", "service": "طلب نقل موقع صيدلية داخل مستشفى من مكان الى آخر.", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "", "service": "طلب فتح واستثمار فرع لمستودع ادوية.", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "", "service": "طلب تكليف صيدلي جديد مكان صيدلي مكلف بادارة صيدلية داخل مستشفى.", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "", "service": "اجازة فتح واستثمار صيدلية. Interactive", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "", "service": "الحصول على اجازة معاطاة مهنة الصيدلة. مكرر", "status": "خدمة مرقمنة جزئياً", "status_en": "Partially Digital", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "", "service": "طلب تسجيل مستحضر صيدلاني مصنع محلياً.", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "", "service": "طلب تسجيل مستحضر صيدلاني مصنع محليا باجازة.", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "", "service": "الكشف والتوقيع على البيانات الجمركية الخاصة بالادوية لاخراجها من الجمارك.", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "دائرة الإستيراد.", "service": "طلب استيراد مواد اولية لصناعة الدواء.", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "دائرة الإستيراد.", "service": "طلب استيراد/ تصدير مواد ومعدات طبية معقمة.", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "دائرة الإستيراد.", "service": "طلب استيراد/ تصدير ادوية للاستعمال الشخصي.", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "دائرة الإستيراد.", "service": "طلب تصدير دم بشري او انسجة للتحليل في الخارج(شخصي)", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "دائرة الإستيراد.", "service": "طلب استيراد مستحضر مصنف بحكم الدواء. Interactive", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "دائرة الإستيراد.", "service": "طلب استيراد حليب. Interactive", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "دائرة الإستيراد.", "service": "طلب تصدير ادوية.", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "دائرة الإستيراد.", "service": "طلب استيراد اصناف مختلفة.Interactive", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "دائرة الإستيراد.", "service": "طلب استيراد ادوية او لقاحات بيطرية.Interactive", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "دائرة الإستيراد.", "service": "طلب استيراد ادوية. Interactive", "status": "خدمة مرقمنة جزئياً", "status_en": "Partially Digital", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "دائرة المخدرات.", "service": "حصول الصيدلي ( صاحب صيدلية خاصة أو مدير فني في صيدلية مستشفى ) على سجل تسليم مخدرات.", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "دائرة المخدرات.", "service": "حصول مريض السرطان على المخدرات.", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "دائرة المخدرات.", "service": "حصول الطبيب على سجل وصفات مواد مخدرة.", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية العناية الطبية:", "directorate_en": "Medical Care Directorate", "department": "مصلحة الصيدلة", "division": "دائرة المخدرات.", "service": "حصول الصيدلي ( صاحب صيدلية خاصة أو مدير فني في صيدلية مستشفى ) على دفتر تسليم مخدرات.  مكرر", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية الوقاية الصحية", "directorate_en": "Health Prevention Directorate", "department": "مصلحة الهندسة الصحية:", "division": "", "service": "الترخيص لاستثمار مصنع للأدوية", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية الوقاية الصحية", "directorate_en": "Health Prevention Directorate", "department": "مصلحة الهندسة الصحية:", "division": "", "service": "الترخيص لإنشاء مصنع للأدوية  Interactive", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية الوقاية الصحية", "directorate_en": "Health Prevention Directorate", "department": "مصلحة الهندسة الصحية:", "division": "", "service": "استيراد وبيع مبيدات للحشرات والقواضم المنزلية Interactive", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية الوقاية الصحية", "directorate_en": "Health Prevention Directorate", "department": "مصلحة الهندسة الصحية:", "division": "", "service": "إجازة الترخيص لاستثمار مصنع لتعبئة المياه والمرطبات", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية الوقاية الصحية", "directorate_en": "Health Prevention Directorate", "department": "مصلحة الهندسة الصحية:", "division": "", "service": "إجازة الترخيص لتعبئة المياه والمرطبات", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية الوقاية الصحية", "directorate_en": "Health Prevention Directorate", "department": "مصلحة الهندسة الصحية:", "division": "", "service": "إجازة ترخيص إنشاء مصنع لتعبئة المياه والمرطبات.", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية الوقاية الصحية", "directorate_en": "Health Prevention Directorate", "department": "مصلحة الهندسة الصحية:", "division": "", "service": "إجازة تحديد الأوعية والملصاقات للمياه والمرطبات", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية الوقاية الصحية", "directorate_en": "Health Prevention Directorate", "department": "مصلحة الهندسة الصحية:", "division": "", "service": "استيراد مياه ومرطبات معبأة في أوعية. Interactive", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية الوقاية الصحية", "directorate_en": "Health Prevention Directorate", "department": "مصلحة الهندسة الصحية:", "division": "", "service": "رش مبيدات للحشرات والقواضم المنزلية", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية الوقاية الصحية", "directorate_en": "Health Prevention Directorate", "department": "مصلحة الهندسة الصحية:", "division": "", "service": "معاطاة مهنة صنع مبيدات للحشرات والقواضم المنزلية", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية الوقاية الصحية", "directorate_en": "Health Prevention Directorate", "department": "مصلحة الهندسة الصحية:", "division": "", "service": "معاطاة مهنة تحضير مبيدات للحشرات والقواضم المنزلية ", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية الوقاية الصحية", "directorate_en": "Health Prevention Directorate", "department": "مصلحة الهندسة الصحية:", "division": "", "service": "معاطاة مهنة بيع مبيدات للقواضم والحشرات المنزلية ", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية الوقاية الصحية", "directorate_en": "Health Prevention Directorate", "department": "مصلحة الهندسة الصحية:", "division": "", "service": "تعبئة وتوضيب مبيدات للحشرات والقواضم المنزلية ", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية الوقاية الصحية", "directorate_en": "Health Prevention Directorate", "department": "مصلحة الهندسة الصحية:", "division": "", "service": "طلب إدخال متممات غذائية وأعشاب طبية طبيعية Interactive", "status": "خدمة مرقمنة جزئياً  غير مفعلة", "status_en": "Partially Digital", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية الوقاية الصحية", "directorate_en": "Health Prevention Directorate", "department": "مصلحة الصحة الإجتماعية:", "division": "دائرة صحة الأم والولد:", "service": "الترخيص بفتح واستثمار دار حضانة للأطفال. Interactive", "status": "خدمة مرقمنة جزئياً", "status_en": "Partially Digital", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية الوقاية الصحية", "directorate_en": "Health Prevention Directorate", "department": "مصلحة الصحة الإجتماعية:", "division": "دائرة صحة الأم والولد:", "service": "السجل الصحي للمولود الجديد.", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية الوقاية الصحية", "directorate_en": "Health Prevention Directorate", "department": "مصلحة الصحة الإجتماعية:", "division": "دائرة صحة الأم والولد:", "service": "تجديد الترخيص لدار حضانة", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية الوقاية الصحية", "directorate_en": "Health Prevention Directorate", "department": "مصلحة الطب الوقائي:", "division": "", "service": "إبلاغ عن إصابة بمرض فقدان المناعة المكتسبة ( السيدا – الإيدز).", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية الوقاية الصحية", "directorate_en": "Health Prevention Directorate", "department": "مصلحة الطب الوقائي:", "division": "", "service": "استمارة إبلاغ ومتابعة التدرن الرئوي ( السل ).Interactive", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية الوقاية الصحية", "directorate_en": "Health Prevention Directorate", "department": "مصلحة الطب الوقائي:", "division": "", "service": "استثمار شهادة طبية قبل الزواج. غير موجود", "status": "خدمة ملغاة", "status_en": "Cancelled", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية الوقاية الصحية", "directorate_en": "Health Prevention Directorate", "department": "مصلحة الطب الوقائي:", "division": "", "service": "مأذونية إدخال جثمان من خارج البلاد إلى لبنان.", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية الوقاية الصحية", "directorate_en": "Health Prevention Directorate", "department": "مصلحة الطب الوقائي:", "division": "", "service": "مأذونية لنقل جثمان من لبنان إلى الخارج.", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية الوقاية الصحية", "directorate_en": "Health Prevention Directorate", "department": "مصلحة الطب الوقائي:", "division": "", "service": "معالجة المعقورين من الحيوانات المسببة لمرض الكلب.", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية الوقاية الصحية", "directorate_en": "Health Prevention Directorate", "department": "مصلحة الطب الوقائي:", "division": "", "service": "معالجة المصابين بالتدرن الرئوي ( السل ). Interactive", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية الوقاية الصحية", "directorate_en": "Health Prevention Directorate", "department": "مصلحة الطب الوقائي:", "division": "", "service": "تشخيص ومراقبة وعلاج مرض الملاريا.", "status": "خدمة مرقمنة", "status_en": "Fully Digital", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية الوقاية الصحية", "directorate_en": "Health Prevention Directorate", "department": "مصلحة الطب الوقائي:", "division": "", "service": "تقديم المشورة ومتابعة مرضى المصابين بفقدان المناعة المكتسبة (السيدا-الإيدز).", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية الوقاية الصحية", "directorate_en": "Health Prevention Directorate", "department": "مصلحة الطب الوقائي:", "division": "", "service": "تلقيح المسافرين المتوجهين إلى مناطق موبوءة.", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية الوقاية الصحية", "directorate_en": "Health Prevention Directorate", "department": "مصلحة الطب الوقائي:", "division": "", "service": "331  اللجنة الطبية الدائمة:", "status": "خدمة ملغاة", "status_en": "Cancelled", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية الوقاية الصحية", "directorate_en": "Health Prevention Directorate", "department": "مصلحة الطب الوقائي:", "division": "", "service": "331-01استمارة شهادة طبية قبل الزواج غير موجود ", "status": "خدمة ملغاة", "status_en": "Cancelled", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية الوقاية الصحية", "directorate_en": "Health Prevention Directorate", "department": "مصلحة الطب الوقائي:", "division": "", "service": "331-02معاش الاعتلال لأبناء الموظفين والمتقاعدين", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية الوقاية الصحية", "directorate_en": "Health Prevention Directorate", "department": "مصلحة الطب الوقائي:", "division": "", "service": "332 البرنامج الوطني للتحصيل الشامل:", "status": "خدمة مرقمنة", "status_en": "Fully Digital", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية الوقاية الصحية", "directorate_en": "Health Prevention Directorate", "department": "مصلحة الطب الوقائي:", "division": "", "service": "332-01بطاقة تحصين الاطفال ضد الامراض المعدية.", "status": "خدمة مرقمنة جزئياً", "status_en": "Partially Digital", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية الوقاية الصحية", "directorate_en": "Health Prevention Directorate", "department": "مصلحة الطب الوقائي:", "division": "", "service": "332-02     اذن تسليم مواد و مطبوعات خاصة بالبرنامج الوطني للتحصين الشامل.", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية الوقاية الصحية", "directorate_en": "Health Prevention Directorate", "department": "مصلحة الطب الوقائي:", "division": "", "service": "332-03تسليم لقاحات ومواد خاصة بالبرنامج الوطني للتحصين الشامل لمراكز التوزيع الفرعية.", "status": "خدمة مرقمنة", "status_en": "Fully Digital", "sheet": "Existing Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية الوقاية الصحية", "directorate_en": "Health Prevention Directorate", "department": "مصلحة الصحة الإجتماعية:", "division": "دائرة الرعاية الصحية الاولية", "service": "ادارة مراكز الرعاية الصحية الاولية", "status": "خدمة مرقمنة", "status_en": "Fully Digital", "sheet": "New Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية الوقاية الصحية", "directorate_en": "Health Prevention Directorate", "department": "مصلحة الصحة الإجتماعية:", "division": "دائرة الرعاية الصحية الاولية", "service": "المرصد الوطني لوفيات الامهات", "status": "خدمة مرقمنة", "status_en": "Fully Digital", "sheet": "New Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية الوقاية الصحية", "directorate_en": "Health Prevention Directorate", "department": "مصلحة الصحة الإجتماعية:", "division": "دائرة الام والولد/دائرة الرعاية الصحية الاولية", "service": "تسجيل الولادات في المستشفيات", "status": "خدمة مرقمنة", "status_en": "Fully Digital", "sheet": "New Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "المديرية العامة", "directorate_en": "General Directorate", "department": "", "division": "دائرة المعلوماتية", "service": "انشاء رقم صحي موحد", "status": "خدمة مرقمنة جزئياً", "status_en": "Partially Digital", "sheet": "New Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية الوقاية الصحية", "directorate_en": "Health Prevention Directorate", "department": "مصلحة الهندسة الصحية:", "division": "", "service": "طلب تسجيل medical implants", "status": "خدمة مرقمنة", "status_en": "Fully Digital", "sheet": "New Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية الوقاية الصحية", "directorate_en": "Health Prevention Directorate", "department": "مصلحة الهندسة الصحية:", "division": "", "service": "طلب استيراد medical implants", "status": "خدمة مرقمنة", "status_en": "Fully Digital", "sheet": "New Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "مديرية الوقاية الصحية", "directorate_en": "Health Prevention Directorate", "department": "مصلحة الهندسة الصحية:", "division": "", "service": "لائحة أسعار medical implants", "status": "خدمة مرقمنة", "status_en": "Fully Digital", "sheet": "New Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "المديرية العامة", "directorate_en": "General Directorate", "department": "", "division": "دائرة الاحصاءات", "service": "تسجيل الوفيات في المستشفيات", "status": "خدمة مرقمنة", "status_en": "Fully Digital", "sheet": "New Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "المديرية العامة", "directorate_en": "General Directorate", "department": "", "division": "البرنامج الوطني للصحة الإلكترونية", "service": "الإطّلاع على أسعار الأدوية المسجّلة في الوزارة والتأكد من صحّتها", "status": "خدمة مرقمنة", "status_en": "Fully Digital", "sheet": "New Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "", "directorate_en": "Unassigned", "department": "", "division": "البرنامج الوطني للصحة الإلكترونية", "service": "تقديم معاملة إلكترونية عبر الموقع الإلكتروني للوزارة ", "status": "خدمة مرقمنة غير مفعلة ", "status_en": "Fully Digital", "sheet": "New Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "", "directorate_en": "Unassigned", "department": "", "division": "البرنامج الوطني للصحة الإلكترونية", "service": "متابعة المعاملة الإدارية عبر موقع الوزارة الإلكتروني", "status": "خدمة مرقمنة غير مفعلة ", "status_en": "Fully Digital", "sheet": "New Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "", "directorate_en": "Unassigned", "department": "", "division": "البرنامج الوطني للصحة الإلكترونية", "service": "أطلس المنشآت الصحّية ", "status": "خدمة مرقمنة غير مفعلة ", "status_en": "Fully Digital", "sheet": "New Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "", "directorate_en": "Unassigned", "department": "", "division": "دائرة المعلوماتية /البرنامج الوطني للصحة الإلكترونية", "service": "تتبّع سجل الأدوية المستعصية للمرضى الذين يستفيدون منها مجاناً من الوزارة  ", "status": "خدمة مرقمنة غير مفعلة ", "status_en": "Fully Digital", "sheet": "New Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "", "directorate_en": "Unassigned", "department": "", "division": "البرنامج الوطني للصحة الإلكترونية", "service": "استيراد الأدوية المسوّقة في لبنان", "status": "خدمة مرقمنة", "status_en": "Fully Digital", "sheet": "New Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "", "directorate_en": "Unassigned", "department": "", "division": "البرنامج الوطني للصحة الإلكترونية", "service": "سجل التجارب السريرية الممكنن", "status": "خدمة مرقمنة", "status_en": "Fully Digital", "sheet": "New Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}, {"ministry": "وزارة الصحـــة", "directorate": "", "directorate_en": "Unassigned", "department": "", "division": "", "service": "العلاج البديل للمخدرات", "status": "خدمة تقليدية", "status_en": "Traditional", "sheet": "New Services", "entity": "Ministry of Public Health", "entity_ar": "وزارة الصحة العامة"}], "priority": [{"priority": 1, "ministry": "وزارة الصحـــة", "service": "انشاء رقم صحي موحد لجميع المستفيدين من خدمات وزارة الصحة العامة", "reason": "رقمنة هذه الخدمة تُسهّل الإجراءات وتُريح المواطن"}, {"priority": 2, "ministry": "وزارة الصحـــة", "service": "اعداد نظام لتوحيد الرموز والادوات ليشمل جميع أنظمة وزارة الصحة العامة", "reason": "أسس أو اعتبارات أخرى"}, {"priority": 3, "ministry": "وزارة الصحـــة", "service": "Serialisation of Drugs", "reason": "رقمنة هذه الخدمة تُسهّل الإجراءات وتُريح المواطن"}, {"priority": 4, "ministry": "وزارة الصحـــة", "service": "تسجيل وتسعير الأدوية", "reason": "رقمنة هذه الخدمة تُسهّل الإجراءات وتُريح المواطن"}, {"priority": 5, "ministry": "وزارة الصحـــة", "service": "أرشفة المعاملات الإدارية والملفات", "reason": "رقمنة هذه الخدمة تُسهّل الإجراءات وتُريح المواطن"}, {"priority": 6, "ministry": "وزارة الصحـــة", "service": "مكننة المعاملات في طبابات الأقضية ومصالح الصحّة", "reason": "رقمنة هذه الخدمة تُسهّل الإجراءات وتُريح المواطن"}, {"priority": 7, "ministry": "وزارة الصحـــة", "service": "الترخيص بفتح واستثمار منشأة صحّية", "reason": "رقمنة هذه الخدمة تُسهّل الإجراءات وتُريح المواطن"}, {"priority": 8, "ministry": "وزارة الصحـــة", "service": "مكننة إجازة معاطاة المهن الطبية", "reason": "رقمنة هذه الخدمة تُسهّل الإجراءات وتُريح المواطن"}, {"priority": 9, "ministry": "وزارة الصحـــة", "service": "Oracle Licences for Visa/Billing and TWFS systems", "reason": "رقمنة هذه الخدمة تُسهّل الإجراءات وتُريح المواطن"}, {"priority": 10, "ministry": "وزارة الصحـــة", "service": "مكننة المتممات الغذائية من التسجيل الى الإستيراد", "reason": "رقمنة هذه الخدمة تُسهّل الإجراءات وتُريح المواطن"}, {"priority": 11, "ministry": "وزارة الصحـــة", "service": "مكننة الكشف على سلامة الغذاء", "reason": "رقمنة هذه الخدمة تُسهّل الإجراءات وتُريح المواطن"}, {"priority": 12, "ministry": "وزارة الصحـــة", "service": "مكننة عمل الحضانات الخاصة في لبنان", "reason": "رقمنة هذه الخدمة تُسهّل الإجراءات وتُريح المواطن"}], "completeness": [{"field": "Ministry", "missing": 0, "total": 268, "completeness": 100.0}, {"field": "Directorate", "missing": 128, "total": 268, "completeness": 52.2}, {"field": "Department", "missing": 128, "total": 268, "completeness": 52.2}, {"field": "Division", "missing": 192, "total": 268, "completeness": 28.4}, {"field": "Service Name", "missing": 118, "total": 268, "completeness": 56.0}, {"field": "Digitalization Status", "missing": 118, "total": 268, "completeness": 56.0}], "sheet_counts": [{"sheet": "Existing Services", "count": 134}, {"sheet": "New Services", "count": 134}, {"sheet": "Priority for Digitalization", "count": 12}]};
+
+let entities = []; // [{id, name, name_ar, filename, color, services, priority, completeness, sheet_counts}]
+let activeEntityId = 'all'; // 'all' or entity id
+let explorerPage = 1;
+const PAGE_SIZE = 20;
+let doughnutChart = null, dirChart = null, sheetChart = null, entityChart = null;
+
+// ═══════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════
+function init() {
+  document.getElementById('hdr-date').textContent = new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+  loadEntity(HEALTH_SEED, true);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  ENTITY LOADING
+// ═══════════════════════════════════════════════════════════
+function makeEntityId() { return 'e_' + Date.now() + '_' + Math.random().toString(36).slice(2,6); }
+
+function loadEntity(seedData, fromSeed=false) {
+  const id = makeEntityId();
+  const color = ENTITY_COLORS[entities.length % ENTITY_COLORS.length];
+  const entity = {
+    id,
+    name: seedData.entity || seedData.filename || 'Unknown Ministry',
+    name_ar: seedData.entity_ar || '',
+    filename: seedData.filename || '',
+    color,
+    services: (seedData.services || []).map(s => ({...s, _entity_id: id, _entity_name: seedData.entity || seedData.filename})),
+    priority: seedData.priority || [],
+    completeness: seedData.completeness || [],
+    sheet_counts: seedData.sheet_counts || [],
+  };
+  entities.push(entity);
+  renderAll();
+  return entity;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  EXCEL PARSING
+// ═══════════════════════════════════════════════════════════
+const STATUS_MAP = {
+  'خدمة مرقمنة': 'Fully Digital',
+  'خدمة تقليدية': 'Traditional',
+  'خدمة مرقمنة جزئياً': 'Partially Digital',
+  'خدمة مرقمنة جزئياً  غير مفعلة': 'Partially Digital',
+  'خدمة مرقمنة غير مفعلة ': 'Fully Digital',
+  'خدمة ملغاة': 'Cancelled',
+};
+
+function inferStatusFromText(text) {
+  if (!text) return 'Unspecified';
+  const t = text.toLowerCase();
+  const mapped = STATUS_MAP[text.trim()];
+  if (mapped) return mapped;
+  if (/online|e-service|end.to.end|رقمنة|مرقمنة/.test(t)) return 'Fully Digital';
+  if (/partial|hybrid|جزئ/.test(t)) return 'Partially Digital';
+  if (/manual|paper|in.person|تقليدية|يدوي/.test(t)) return 'Traditional';
+  return 'Unspecified';
+}
+
+function detectCol(headers, patterns) {
+  for (const h of headers) {
+    const hl = String(h).toLowerCase();
+    for (const p of patterns) {
+      if (hl.includes(p)) return h;
+    }
+  }
+  return null;
+}
+
+function parseExcelFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const wb = XLSX.read(e.target.result, { type: 'array' });
+        const allServices = [];
+        const sheet_counts = [];
+        let priority = [];
+        let completeness = [];
+        const entityName = file.name.replace(/\.xlsx?$/i,'').replace(/_/g,' ');
+
+        wb.SheetNames.forEach(shName => {
+          const ws = wb.Sheets[shName];
+          const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+          if (!rows.length) return;
+          sheet_counts.push({ sheet: shName, count: rows.length });
+
+          const headers = Object.keys(rows[0]);
+
+          // detect columns
+          const colService   = detectCol(headers, ['خدمة','service','خدمات']);
+          const colStatus    = detectCol(headers, ['وضع','status','الوضع']);
+          const colDir       = detectCol(headers, ['مديرية','directorate','dir']);
+          const colDept      = detectCol(headers, ['مصلحة','department','dept']);
+          const colDiv       = detectCol(headers, ['دائرة','division','div']);
+          const colMinistry  = detectCol(headers, ['وزارة','ministry','min']);
+          const colPriority  = detectCol(headers, ['أولوية','priority','أولو']);
+          const colReason    = detectCol(headers, ['سبب','reason']);
+
+          // check if this looks like a priority sheet
+          if (colPriority && !colStatus) {
+            rows.forEach(r => {
+              if (!r[colService] && !r[colPriority]) return;
+              priority.push({
+                priority: r[colPriority] || '',
+                service: r[colService] || '',
+                reason: r[colReason] || '',
+                ministry: entityName,
+              });
+            });
+            return;
+          }
+
+          rows.forEach(r => {
+            const svc = String(r[colService] || '').trim();
+            if (!svc) return;
+            const rawStatus = String(r[colStatus] || '').trim();
+            const statusEn = STATUS_MAP[rawStatus] || inferStatusFromText(rawStatus || svc);
+            allServices.push({
+              ministry: String(r[colMinistry] || entityName).trim(),
+              directorate: String(r[colDir] || '').trim(),
+              directorate_en: String(r[colDir] || 'Unassigned').trim() || 'Unassigned',
+              department: String(r[colDept] || '').trim(),
+              division: String(r[colDiv] || '').trim(),
+              service: svc,
+              status: rawStatus,
+              status_en: statusEn,
+              sheet: shName,
+            });
+          });
+        });
+
+        // compute completeness
+        const fields = [
+          {field:'Ministry', key:'ministry'},
+          {field:'Directorate', key:'directorate'},
+          {field:'Department', key:'department'},
+          {field:'Division', key:'division'},
+          {field:'Service Name', key:'service'},
+          {field:'Digitalization Status', key:'status'},
+        ];
+        const total = allServices.length;
+        completeness = fields.map(f => {
+          const missing = allServices.filter(s => !s[f.key]).length;
+          return { field: f.field, missing, total, completeness: total ? Math.round((1-missing/total)*1000)/10 : 0 };
+        });
+
+        resolve({
+          entity: entityName,
+          entity_ar: '',
+          filename: file.name,
+          services: allServices,
+          priority,
+          completeness,
+          sheet_counts,
+        });
+      } catch(err) {
+        reject(err);
+      }
+    };
+    reader.onerror = reject;
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+//  UPLOAD MODAL
+// ═══════════════════════════════════════════════════════════
+function openUploadModal() { document.getElementById('upload-overlay').classList.add('open'); }
+function closeUploadModal() { document.getElementById('upload-overlay').classList.remove('open'); }
+function handleOverlayClick(e) { if (e.target===document.getElementById('upload-overlay')) closeUploadModal(); }
+
+const dropZone = document.getElementById('drop-zone');
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('drag-over'); handleFiles(e.dataTransfer.files); });
+document.getElementById('file-input').addEventListener('change', e => handleFiles(e.target.files));
+
+async function handleFiles(files) {
+  const pw = document.getElementById('progress-wrap');
+  const pf = document.getElementById('progress-fill');
+  const pl = document.getElementById('progress-label');
+  pw.style.display = 'block';
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    pl.textContent = `Parsing ${file.name}...`;
+    pf.style.width = '20%';
+
+    // Check duplicate
+    if (entities.find(e => e.filename === file.name)) {
+      showToast(`⚠️ ${file.name} already loaded`, 'error');
+      continue;
+    }
+
+    try {
+      pf.style.width = '60%';
+      const data = await parseExcelFile(file);
+      pf.style.width = '100%';
+      const entity = loadEntity(data);
+      renderModalLoaded();
+      showToast(`✅ ${entity.name} loaded — ${entity.services.length} services`, 'success');
+    } catch(err) {
+      showToast(`❌ Failed to parse ${file.name}`, 'error');
+    }
+  }
+  pf.style.width = '0%';
+  pw.style.display = 'none';
+  document.getElementById('file-input').value = '';
+}
+
+function removeEntity(id) {
+  entities = entities.filter(e => e.id !== id);
+  if (activeEntityId === id) activeEntityId = 'all';
+  renderModalLoaded();
+  renderAll();
+  showToast('Entity removed');
+}
+
+function renderModalLoaded() {
+  const el = document.getElementById('modal-loaded');
+  el.innerHTML = '';
+  entities.forEach(e => {
+    el.innerHTML += `
+      <div class="loaded-item">
+        <div class="loaded-icon" style="color:${e.color}">📊</div>
+        <div>
+          <div class="loaded-name">${e.name}</div>
+          <div class="loaded-count">${e.filename}</div>
+        </div>
+        <span class="loaded-count">${e.services.length} services</span>
+        ${e.name !== 'Ministry of Public Health' ?
+          `<button class="loaded-remove" onclick="removeEntity('${e.id}')" title="Remove">✕</button>` :
+          '<div style="width:22px"></div>'}
+      </div>`;
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+//  ACTIVE DATA
+// ═══════════════════════════════════════════════════════════
+function getActiveServices() {
+  if (activeEntityId === 'all') return entities.flatMap(e => e.services);
+  const e = entities.find(x => x.id === activeEntityId);
+  return e ? e.services : [];
+}
+function getActiveEntity() {
+  if (activeEntityId === 'all') return null;
+  return entities.find(x => x.id === activeEntityId) || null;
+}
+function getActivePriority() {
+  if (activeEntityId === 'all') return entities.flatMap(e => e.priority.map(p=>({...p,_entity:e.name})));
+  const e = entities.find(x => x.id === activeEntityId);
+  return e ? e.priority : [];
+}
+function getActiveCompleteness() {
+  if (activeEntityId === 'all') {
+    // average across entities
+    const fields = ['Ministry','Directorate','Department','Division','Service Name','Digitalization Status'];
+    return fields.map(f => {
+      const vals = entities.map(e => (e.completeness.find(c=>c.field===f)||{completeness:0,missing:0,total:0}));
+      const totalSvcs = vals.reduce((a,b)=>a+b.total,0);
+      const totalMiss = vals.reduce((a,b)=>a+b.missing,0);
+      const pct = totalSvcs ? Math.round((1-totalMiss/totalSvcs)*1000)/10 : 0;
+      return { field:f, missing:totalMiss, total:totalSvcs, completeness:pct };
+    });
+  }
+  const e = entities.find(x => x.id === activeEntityId);
+  return e ? e.completeness : [];
+}
+function getActiveSheetCounts() {
+  if (activeEntityId === 'all') return entities.flatMap(e => e.sheet_counts.map(s=>({...s,sheet:`[${e.name.split(' ').slice(-1)[0]}] ${s.sheet}`})));
+  const e = entities.find(x => x.id === activeEntityId);
+  return e ? e.sheet_counts : [];
+}
+
+// ═══════════════════════════════════════════════════════════
+//  RENDER ALL
+// ═══════════════════════════════════════════════════════════
+function renderAll() {
+  renderTabs();
+  renderKPIs();
+  renderEntityOverview();
+  renderCharts();
+  renderCompleteness();
+  renderPriority();
+  renderExplorer();
+  updateModalLoaded();
+}
+
+function updateModalLoaded() { renderModalLoaded(); }
+
+// ═══════════════════════════════════════════════════════════
+//  TABS
+// ═══════════════════════════════════════════════════════════
+function renderTabs() {
+  const container = document.getElementById('entity-tabs');
+  const uploadBtn = container.querySelector('.upload-tab');
+  container.innerHTML = '';
+
+  const allSvcs = entities.flatMap(e => e.services);
+  const allTab = document.createElement('div');
+  allTab.className = 'entity-tab all-tab' + (activeEntityId==='all'?' active':'');
+  allTab.innerHTML = `<span class="tab-dot"></span> All Ministries <span class="tab-count">${allSvcs.length}</span>`;
+  allTab.onclick = () => { activeEntityId='all'; renderAll(); };
+  container.appendChild(allTab);
+
+  entities.forEach(e => {
+    const tab = document.createElement('div');
+    tab.className = 'entity-tab' + (activeEntityId===e.id?' active':'');
+    tab.innerHTML = `<span class="tab-dot" style="background:${e.color}"></span><span class="tab-name" data-id="${e.id}" title="Double-click to rename">${e.name}</span><span class="tab-count">${e.services.length}</span>`;
+    tab.onclick = () => { activeEntityId=e.id; renderAll(); };
+    // Double-click on name to rename
+    tab.querySelector('.tab-name').ondblclick = (ev) => {
+      ev.stopPropagation();
+      const span = ev.target;
+      const eid = span.dataset.id;
+      const ent = entities.find(x=>x.id===eid);
+      if (!ent) return;
+      const input = document.createElement('input');
+      input.value = ent.name;
+      input.style.cssText = 'border:none;outline:none;background:transparent;font:inherit;color:inherit;width:'+(ent.name.length*8+20)+'px;max-width:200px;padding:0';
+      span.replaceWith(input);
+      input.focus(); input.select();
+      const save = () => {
+        const newName = input.value.trim() || ent.name;
+        ent.name = newName;
+        ent.services.forEach(s => s._entity_name = newName);
+        renderAll();
+        showToast('✅ Renamed to "'+newName+'"', 'success');
+      };
+      input.onblur = save;
+      input.onkeydown = ev2 => { if(ev2.key==='Enter') save(); if(ev2.key==='Escape'){input.value=ent.name;save();} };
+    };
+    container.appendChild(tab);
+  });
+
+  container.appendChild(uploadBtn);
+
+  // update header badge
+  document.getElementById('hdr-entity-count').textContent = `${entities.length} Ministr${entities.length===1?'y':'ies'} Loaded`;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  KPIs
+// ═══════════════════════════════════════════════════════════
+function renderKPIs() {
+  const svcs = getActiveServices();
+  const total = svcs.length;
+  const fully = svcs.filter(s=>s.status_en==='Fully Digital').length;
+  const partial = svcs.filter(s=>s.status_en==='Partially Digital').length;
+  const trad = svcs.filter(s=>s.status_en==='Traditional').length;
+  const missing = svcs.filter(s=>!s.status).length;
+  const pct = n => total ? Math.round(n/total*100)+'%' : '0%';
+
+  const grid = document.getElementById('kpi-grid');
+  grid.innerHTML = '';
+  [
+    {cls:'c-total',icon:'🏛️',label:'Total Services',val:total,sub:'Across all directorates',extra:''},
+    {cls:'c-digital',icon:'✅',label:'Fully Digital',val:fully,sub:'End-to-end digital',extra:pct(fully)+' of total'},
+    {cls:'c-partial',icon:'⚡',label:'Partially Digital',val:partial,sub:'Hybrid digitalization',extra:pct(partial)+' of total'},
+    {cls:'c-trad',icon:'📄',label:'Traditional',val:trad,sub:'Manual / paper-based',extra:pct(trad)+' of total'},
+    {cls:'c-missing',icon:'❓',label:'Missing Status',val:missing,sub:'No status recorded',extra:pct(missing)+' of total'},
+  ].forEach(k => {
+    grid.innerHTML += `
+      <div class="kpi-card ${k.cls}">
+        <div class="kpi-label">${k.icon} ${k.label}</div>
+        <div class="kpi-value">${k.val}</div>
+        <div class="kpi-sub">${k.sub}</div>
+        ${k.extra?`<div class="kpi-pct">${k.extra}</div>`:''}
+      </div>`;
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+//  ENTITY OVERVIEW (consolidated)
+// ═══════════════════════════════════════════════════════════
+function renderEntityOverview() {
+  const sec = document.getElementById('entity-overview-section');
+  if (activeEntityId !== 'all' || entities.length < 2) { sec.style.display='none'; return; }
+  sec.style.display='block';
+  const grid = document.getElementById('entity-overview-grid');
+  grid.innerHTML = `<div style="display:flex;gap:10px;flex-wrap:wrap">` +
+    entities.map(e => {
+      const total = e.services.length;
+      const fully = e.services.filter(s=>s.status_en==='Fully Digital').length;
+      const pct = total ? Math.round(fully/total*100) : 0;
+      return `
+        <div class="entity-pill ${activeEntityId===e.id?'active':''}" onclick="activeEntityId='${e.id}';renderAll()">
+          <span class="ep-color" style="background:${e.color}"></span>
+          <span class="ep-name">${e.name}</span>
+          <span class="ep-count">${total} svc &nbsp;·&nbsp; ${pct}% digital</span>
+        </div>`;
+    }).join('') + `</div>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  CHARTS
+// ═══════════════════════════════════════════════════════════
+function destroyChart(ref) { if (ref) { try { ref.destroy(); } catch(e){} } }
+
+function renderCharts() {
+  const svcs = getActiveServices();
+  const total = svcs.length;
+
+  // Doughnut
+  destroyChart(doughnutChart);
+  document.getElementById('doughnut-total').textContent = total;
+  const fully=svcs.filter(s=>s.status_en==='Fully Digital').length;
+  const partial=svcs.filter(s=>s.status_en==='Partially Digital').length;
+  const trad=svcs.filter(s=>s.status_en==='Traditional').length;
+  const cancelled=svcs.filter(s=>s.status_en==='Cancelled').length;
+  const unspec=svcs.filter(s=>s.status_en==='Unspecified').length;
+  doughnutChart = new Chart(document.getElementById('doughnutChart').getContext('2d'), {
+    type:'doughnut',
+    data:{
+      labels:['Fully Digital','Partially Digital','Traditional','Cancelled','Unspecified'],
+      datasets:[{
+        data:[fully,partial,trad,cancelled,unspec],
+        backgroundColor:['#16a34a','#d97706','#dc2626','#7c3aed','#9ca3af'],
+        borderColor:'#fff',borderWidth:3,hoverBorderWidth:4
+      }]
+    },
+    options:{responsive:true,maintainAspectRatio:false,cutout:'66%',
+      plugins:{
+        legend:{position:'bottom',labels:{padding:12,font:{family:"'IBM Plex Sans'",size:10},color:'#4a6080',boxWidth:10,boxHeight:10,usePointStyle:true,pointStyle:'circle'}},
+        tooltip:{callbacks:{label:ctx=>` ${ctx.label}: ${ctx.raw} (${total?Math.round(ctx.raw/total*100):0}%)`}}
+      }
+    }
+  });
+
+  // Directorate bar
+  destroyChart(dirChart);
+  const dirCounts={};
+  svcs.forEach(s => { const d=s.directorate_en||'Unassigned'; dirCounts[d]=(dirCounts[d]||0)+1; });
+  const dirSorted=Object.entries(dirCounts).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  dirChart = new Chart(document.getElementById('dirChart').getContext('2d'),{
+    type:'bar',
+    data:{
+      labels:dirSorted.map(d=>d[0].length>22?d[0].slice(0,22)+'…':d[0]),
+      datasets:[{
+        label:'Services',data:dirSorted.map(d=>d[1]),
+        backgroundColor:dirSorted.map((_,i)=>{
+          const e=getActiveEntity();
+          const base=e?e.color:ENTITY_COLORS[i%ENTITY_COLORS.length];
+          return base+(i===0?'ff':'bb');
+        }),
+        borderRadius:5,borderSkipped:false
+      }]
+    },
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.raw} services`}}},
+      scales:{
+        x:{grid:{color:'#f0f4f9'},ticks:{font:{family:"'IBM Plex Mono'",size:10},color:'#8ba4be'},border:{display:false}},
+        y:{grid:{display:false},ticks:{font:{family:"'IBM Plex Sans'",size:10},color:'#4a6080'},border:{display:false}}
+      }
+    }
+  });
+
+  // Sheet bar
+  destroyChart(sheetChart);
+  const sheetCounts=getActiveSheetCounts();
+  const sheetColors=['#1f6fb2','#16a34a','#d97706','#7c3aed','#0891b2','#dc2626'];
+  sheetChart = new Chart(document.getElementById('sheetChart').getContext('2d'),{
+    type:'bar',
+    data:{
+      labels:sheetCounts.map(s=>{ const p=s.sheet.split(' '); return p.slice(0,2).join(' '); }),
+      datasets:[{
+        data:sheetCounts.map(s=>s.count),
+        backgroundColor:sheetCounts.map((_,i)=>sheetColors[i%sheetColors.length]),
+        borderRadius:5,borderSkipped:false
+      }]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.raw} rows`}}},
+      scales:{
+        x:{grid:{display:false},ticks:{font:{family:"'IBM Plex Sans'",size:9},color:'#8ba4be'},border:{display:false}},
+        y:{grid:{color:'#f0f4f9'},ticks:{font:{family:"'IBM Plex Mono'",size:10},color:'#8ba4be'},border:{display:false}}
+      }
+    }
+  });
+  const legend=document.getElementById('sheet-legend');
+  legend.innerHTML=sheetCounts.slice(0,5).map((s,i)=>`
+    <div style="display:flex;align-items:center;gap:8px">
+      <div style="width:8px;height:8px;border-radius:50%;background:${sheetColors[i%sheetColors.length]};flex-shrink:0"></div>
+      <span style="font-size:11px;color:var(--text-secondary);flex:1">${s.sheet}</span>
+      <span style="font-size:11px;font-weight:600;font-family:'IBM Plex Mono'">${s.count}</span>
+    </div>`).join('');
+
+  // Entity comparison chart
+  const ecCard=document.getElementById('entity-chart-card');
+  if (activeEntityId==='all' && entities.length>1) {
+    ecCard.style.display='block';
+    destroyChart(entityChart);
+    entityChart = new Chart(document.getElementById('entityChart').getContext('2d'),{
+      type:'bar',
+      data:{
+        labels:entities.map(e=>e.name),
+        datasets:[
+          {label:'Fully Digital',data:entities.map(e=>e.services.filter(s=>s.status_en==='Fully Digital').length),backgroundColor:'#16a34a',borderRadius:4,stack:'s'},
+          {label:'Partially Digital',data:entities.map(e=>e.services.filter(s=>s.status_en==='Partially Digital').length),backgroundColor:'#d97706',borderRadius:4,stack:'s'},
+          {label:'Traditional',data:entities.map(e=>e.services.filter(s=>s.status_en==='Traditional').length),backgroundColor:'#dc2626',borderRadius:4,stack:'s'},
+          {label:'Unspecified',data:entities.map(e=>e.services.filter(s=>s.status_en==='Unspecified').length),backgroundColor:'#9ca3af',borderRadius:4,stack:'s'},
+        ]
+      },
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{position:'bottom',labels:{padding:12,font:{family:"'IBM Plex Sans'",size:10},color:'#4a6080',boxWidth:10,boxHeight:10,usePointStyle:true,pointStyle:'circle'}}},
+        scales:{
+          x:{grid:{display:false},ticks:{font:{family:"'IBM Plex Sans'",size:11},color:'#4a6080'},border:{display:false},stacked:true},
+          y:{grid:{color:'#f0f4f9'},ticks:{font:{family:"'IBM Plex Mono'",size:10},color:'#8ba4be'},border:{display:false},stacked:true}
+        }
+      }
+    });
+  } else {
+    ecCard.style.display='none';
+    destroyChart(entityChart);
+    entityChart=null;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  COMPLETENESS TABLE
+// ═══════════════════════════════════════════════════════════
+function renderCompleteness() {
+  const data=getActiveCompleteness();
+  document.getElementById('comp-count').textContent=data.length+' fields';
+  const tbody=document.getElementById('comp-tbody');
+  tbody.innerHTML='';
+  data.forEach(c=>{
+    const p=c.completeness;
+    const cls=p>=80?'h':p>=50?'m':'l';
+    const col={'h':'#16a34a','m':'#d97706','l':'#dc2626'}[cls];
+    tbody.innerHTML+=`
+      <tr>
+        <td><strong>${c.field}</strong></td>
+        <td><span style="font-family:'IBM Plex Mono';font-size:12px;color:${col}">${c.missing}</span></td>
+        <td>
+          <div class="comp-bar-wrap">
+            <div class="bar-track"><div class="bar-fill b${cls}" style="width:${p}%"></div></div>
+            <span class="bar-pct p${cls}">${p}%</span>
+          </div>
+        </td>
+      </tr>`;
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+//  PRIORITY TABLE
+// ═══════════════════════════════════════════════════════════
+function renderPriority() {
+  const data=getActivePriority();
+  const isAll=activeEntityId==='all';
+  document.getElementById('prio-count').textContent=data.length+' services';
+  const eTh=document.getElementById('prio-entity-th');
+  eTh.style.display=isAll&&entities.length>1?'':'none';
+  const tbody=document.getElementById('prio-tbody');
+  tbody.innerHTML='';
+  if (!data.length) {
+    tbody.innerHTML=`<tr><td colspan="4" style="text-align:center;padding:30px;color:var(--text-muted)">No priority data available</td></tr>`;
+    return;
+  }
+  data.forEach((p,i)=>{
+    const rank=p.priority||i+1;
+    const isTop=Number(rank)<=3;
+    tbody.innerHTML+=`
+      <tr>
+        <td><div class="pnum ${isTop?'top':''}">${rank}</div></td>
+        <td class="td-rtl" style="max-width:220px">${p.service||'—'}</td>
+        <td style="font-size:11px;color:var(--text-muted);max-width:150px">${p.reason||'—'}</td>
+        ${isAll&&entities.length>1?`<td><span style="font-size:10px;color:var(--text-muted)">${p._entity||p.ministry||''}</span></td>`:''}
+      </tr>`;
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+//  EXPLORER
+// ═══════════════════════════════════════════════════════════
+let filteredSvcs = [];
+
+function statusBadge(s) {
+  const map={'Fully Digital':['b-fully','✅'],'Partially Digital':['b-partial','⚡'],'Traditional':['b-trad','📄'],'Cancelled':['b-cancel','🚫']};
+  const [cls,icon]=map[s]||['b-unspec','❓'];
+  return `<span class="badge ${cls}"><span class="badge-dot"></span>${s||'Unspecified'}</span>`;
+}
+
+function renderExplorer() {
+  const svcs=getActiveServices();
+  const isAll=activeEntityId==='all'&&entities.length>1;
+
+  // show/hide entity filter & column
+  const ef=document.getElementById('entity-filter');
+  const thE=document.getElementById('th-entity');
+  if (isAll) {
+    ef.style.display='';
+    thE.style.display='';
+    ef.innerHTML='<option value="">All Ministries</option>'+entities.map(e=>`<option value="${e.id}">${e.name}</option>`).join('');
+  } else {
+    ef.style.display='none';
+    thE.style.display='none';
+  }
+
+  applyExplorerFilters();
+}
+
+function applyExplorerFilters() {
+  const svcs=getActiveServices();
+  const q=document.getElementById('search-input').value.toLowerCase();
+  const sf=document.getElementById('status-filter').value;
+  const efVal=document.getElementById('entity-filter').value;
+
+  filteredSvcs=svcs.filter(s=>{
+    const text=[s.service,s.department,s.division,s.directorate_en,s.directorate].join(' ').toLowerCase();
+    return (!q||text.includes(q))&&(!sf||s.status_en===sf)&&(!efVal||s._entity_id===efVal);
+  });
+
+  explorerPage=Math.min(explorerPage,Math.ceil(filteredSvcs.length/PAGE_SIZE)||1);
+  renderExplorerPage();
+}
+
+function renderExplorerPage() {
+  const total=filteredSvcs.length;
+  const totalPages=Math.ceil(total/PAGE_SIZE)||1;
+  const start=(explorerPage-1)*PAGE_SIZE;
+  const page=filteredSvcs.slice(start,start+PAGE_SIZE);
+  const isAll=activeEntityId==='all'&&entities.length>1;
+
+  const tbody=document.getElementById('explorer-tbody');
+  tbody.innerHTML='';
+  if (!page.length) {
+    tbody.innerHTML=`<tr><td colspan="8" style="text-align:center;padding:40px">
+      <div class="empty-icon">🔍</div>
+      <div class="empty-title">No services found</div>
+      <div class="empty-sub">Try adjusting your search or filters</div>
+    </td></tr>`;
+  } else {
+    const entityMap={};
+    entities.forEach(e=>{entityMap[e.id]=e;});
+    page.forEach((s,i)=>{
+      const e=entityMap[s._entity_id];
+      tbody.innerHTML+=`
+        <tr>
+          <td style="color:var(--text-muted);font-family:'IBM Plex Mono';font-size:11px">${start+i+1}</td>
+          ${isAll?`<td><span style="font-size:10px;font-weight:600;color:${e?e.color:ENTITY_COLORS[0]}">${s._entity_name||''}</span></td>`:''}
+          <td class="td-rtl" style="max-width:240px;font-size:12px">${s.service||'—'}</td>
+          <td style="font-size:11px">${s.directorate_en||'—'}</td>
+          <td class="td-rtl" style="font-size:11px;max-width:140px">${s.department||'—'}</td>
+          <td class="td-rtl" style="font-size:11px;max-width:140px">${s.division||'—'}</td>
+          <td>${statusBadge(s.status_en)}</td>
+          <td style="font-size:10px;color:var(--text-muted)">${s.sheet||''}</td>
+        </tr>`;
+    });
+  }
+
+  document.getElementById('exp-showing').textContent=total?`${start+1}–${Math.min(start+PAGE_SIZE,total)}`:'0';
+  document.getElementById('exp-total').textContent=total;
+
+  // Pagination
+  const pag=document.getElementById('pagination');
+  pag.innerHTML='';
+  if (totalPages<=1) return;
+  const btn=(lbl,pg,disabled=false,active=false)=>{
+    const b=document.createElement('button');
+    b.className='page-btn'+(active?' active':'');
+    b.textContent=lbl; b.disabled=disabled;
+    if (!disabled) b.addEventListener('click',()=>{ explorerPage=pg; renderExplorerPage(); });
+    return b;
+  };
+  pag.appendChild(btn('‹',explorerPage-1,explorerPage===1));
+  const range=[];
+  if (totalPages<=7){for(let i=1;i<=totalPages;i++)range.push(i);}
+  else{range.push(1);if(explorerPage>3)range.push('…');for(let i=Math.max(2,explorerPage-1);i<=Math.min(totalPages-1,explorerPage+1);i++)range.push(i);if(explorerPage<totalPages-2)range.push('…');range.push(totalPages);}
+  range.forEach(r=>{
+    if(r==='…'){const s=document.createElement('span');s.textContent='…';s.style.cssText='color:var(--text-muted);padding:0 3px;font-size:12px';pag.appendChild(s);}
+    else pag.appendChild(btn(r,r,false,r===explorerPage));
+  });
+  pag.appendChild(btn('›',explorerPage+1,explorerPage===totalPages));
+}
+
+// ═══════════════════════════════════════════════════════════
+//  FILTER LISTENERS
+// ═══════════════════════════════════════════════════════════
+document.getElementById('search-input').addEventListener('input',()=>{explorerPage=1;applyExplorerFilters();});
+document.getElementById('status-filter').addEventListener('change',()=>{explorerPage=1;applyExplorerFilters();});
+document.getElementById('entity-filter').addEventListener('change',()=>{explorerPage=1;applyExplorerFilters();});
+
+// ═══════════════════════════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════════════════════════
+function showToast(msg, type='') {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast'+(type?' '+type:'');
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3200);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  LOGO UPLOAD
+// ═══════════════════════════════════════════════════════════
+function handleLogoUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const img = document.createElement('img');
+    img.src = ev.target.result;
+    img.style.cssText = 'width:56px;height:56px;object-fit:contain;border-radius:10px;border:1px solid rgba(255,255,255,0.25);background:rgba(255,255,255,0.12);padding:4px';
+    const display = document.getElementById('logo-display');
+    display.innerHTML = '';
+    display.appendChild(img);
+    showToast('✅ Logo updated', 'success');
+  };
+  reader.readAsDataURL(file);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  START
+// ═══════════════════════════════════════════════════════════
+init();
+</script>
+</body>
+</html>
